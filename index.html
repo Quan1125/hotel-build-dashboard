@@ -74,7 +74,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .metric dd { margin-top: 6px; display: flex; align-items: baseline; gap: 5px; font-size: clamp(1.4rem, 2.8vw, 1.95rem); letter-spacing: -.03em; font-variant-numeric: tabular-nums; font-weight: 750; }
 .metric dd span { font-size: .825rem; color: var(--subtle); letter-spacing: 0; font-weight: 550; }
 
-.overview-panels { display: grid; grid-template-columns: 1.22fr 1fr; gap: 14px; margin-top: 14px; }
+.overview-panels { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 14px; margin-top: 14px; }
 .overview-panels .panel { padding: 16px 19px; }
 .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .panel h2 { font-size: 1.075rem; font-weight: 730; line-height: 1.45; }
@@ -87,14 +87,15 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .bar-fill { display: block; height: 100%; border-radius: inherit; background: #3b9a8b; }
 .region-bar:first-child .bar-fill { background: #076b60; }
 .region-value { color: var(--teal-dark); font-weight: 720; text-align: right; font-variant-numeric: tabular-nums; }
-.brand-count-panel { display: flex; flex-direction: column; }
-.brand-count-values { margin-top: 8px; flex: 1; display: grid; align-content: center; }
-.brand-count-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 9px; border-bottom: 1px solid #e8eef0; }
-.brand-count-line dt { font-weight: 530; font-size: .875rem; }
-.brand-count-line dd { font-weight: 750; font-size: 1.11rem; color: var(--navy); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.brand-count-line dd span { margin-left: 4px; font-size: .8rem; color: var(--subtle); font-weight: 500; }
-.brand-count-line:last-child { margin-top: 5px; border: 0; border-radius: 7px; background: #eaf6f3; }
-.brand-count-line:last-child dt, .brand-count-line:last-child dd { color: var(--teal-dark); font-weight: 750; }
+.count-panel { display: flex; flex-direction: column; }
+.count-values { margin-top: 8px; flex: 1; display: flex; flex-direction: column; }
+.count-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 9px; border-bottom: 1px solid #e8eef0; }
+.count-line dt { font-weight: 530; font-size: .875rem; }
+.count-line dd { font-weight: 750; font-size: 1.11rem; color: var(--navy); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.count-line dd span { margin-left: 4px; font-size: .8rem; color: var(--subtle); font-weight: 500; }
+.count-line:last-child { margin-top: auto; border: 0; border-radius: 7px; background: #eaf6f3; }
+.count-line:last-child dt, .count-line:last-child dd { color: var(--teal-dark); font-weight: 750; }
+.count-line:has(+ :last-child) { margin-bottom: 5px; }
 
 .projects { margin-top: 18px; overflow: hidden; }
 .projects-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 19px 14px; }
@@ -187,6 +188,8 @@ dialog::backdrop { background: #10253e95; }
 @media (max-width: 900px) {
   .container { width: calc(100% - 40px); }
   .metric { padding-inline: 13px; }
+  .overview-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .region-panel { grid-column: 1 / -1; }
   .filters { grid-template-columns: minmax(160px, 1.25fr) minmax(110px, .7fr) minmax(120px, .8fr) auto; }
 }
 @media (max-width: 660px) {
@@ -245,9 +248,13 @@ dialog::backdrop { background: #10253e95; }
           <p class="panel-caption" id="region-caption">项目数最多的 5 个合区，点击查看明细</p>
           <div class="region-bars" id="region-bars" aria-describedby="region-caption"></div>
         </section>
-        <section class="panel brand-count-panel" id="brand-count-panel" aria-labelledby="brand-count-title">
+        <section class="panel count-panel" id="brand-count-panel" aria-labelledby="brand-count-title">
           <div class="panel-heading"><h2 id="brand-count-title">品牌门店数</h2><span class="quiet">按品牌类型</span></div>
-          <dl class="brand-count-values" id="brand-count-values"></dl>
+          <dl class="count-values" id="brand-count-values"></dl>
+        </section>
+        <section class="panel count-panel" id="renovation-count-panel" aria-labelledby="renovation-count-title">
+          <div class="panel-heading"><h2 id="renovation-count-title">装修标准门店数</h2></div>
+          <dl class="count-values" id="renovation-count-values"></dl>
         </section>
       </div>
     </section>
@@ -377,14 +384,25 @@ dialog::backdrop { background: #10253e95; }
     return precise.format(value);
   }
 
-  function counts(key) {
+  function counts(key, normalize = value => value) {
     const result = new Map();
     for (const row of rows) {
-      const label = get(row, key);
+      const label = normalize(get(row, key));
       if (label == null || label === "") continue;
       result.set(label, (result.get(label) ?? 0) + 1);
     }
     return result;
+  }
+
+  function renderCounts(target, entries, totalLabel) {
+    const total = entries.reduce((sum, [, count]) => sum + count, 0);
+    for (const [label, count] of [...entries, [totalLabel, total]]) {
+      const line = make("div", "count-line");
+      const value = make("dd", null, integer.format(count));
+      value.append(make("span", null, "家"));
+      line.append(make("dt", null, label), value);
+      target.append(line);
+    }
   }
 
   function renderOverview() {
@@ -432,16 +450,16 @@ dialog::backdrop { background: #10253e95; }
     }
 
     const countsByType = counts("F");
-    const overviewCounts = brandTypes.map(({ label, type }) => ({ label, count: countsByType.get(type) ?? 0 }));
-    const total = overviewCounts.reduce((sum, { count }) => sum + count, 0);
-    overviewCounts.push({ label: "三类合计", count: total });
-    for (const { label, count } of overviewCounts) {
-      const line = make("div", "brand-count-line");
-      const value = make("dd", null, integer.format(count));
-      value.append(make("span", null, "家"));
-      line.append(make("dt", null, label), value);
-      byId("brand-count-values").append(line);
-    }
+    const brandOverview = brandTypes.map(({ label, type }) => [label, countsByType.get(type) ?? 0]);
+    renderCounts(byId("brand-count-values"), brandOverview, "三类合计");
+
+    const renovationCounts = counts("G", value => {
+      const standard = String(value ?? "").trim();
+      return ["", "-", "—"].includes(standard) ? "未填写" : standard;
+    });
+    const renovationOverview = [...renovationCounts].sort((a, b) => b[1] - a[1] || collator.compare(a[0], b[0]));
+    renderCounts(byId("renovation-count-values"), renovationOverview, "合计");
+
     populateOptions(region, regionCounts.keys());
     populateBrandOptions(brandCounts.keys());
   }
