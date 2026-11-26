@@ -97,18 +97,35 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .count-line:last-child dt, .count-line:last-child dd { color: var(--teal-dark); font-weight: 750; }
 .count-line:has(+ :last-child) { margin-bottom: 5px; }
 
-.projects { margin-top: 18px; overflow: hidden; }
+.projects { margin-top: 18px; }
 .projects-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 19px 14px; }
 .projects-heading h2 { font-size: 1.2rem; }
 .filters { display: grid; grid-template-columns: minmax(210px, 1.45fr) minmax(140px, .9fr) minmax(100px, .65fr) minmax(140px, .9fr) auto; gap: 10px; padding: 0 19px 14px; }
-.search-field, .select-field { position: relative; min-width: 0; }
-.search-field input, .select-field select { display: block; width: 100%; height: 40px; color: var(--ink); border: 1px solid var(--border); border-radius: 8px; background: #f8fafb; font-size: .875rem; }
+.search-field, .select-field, .multi-filter { position: relative; min-width: 0; }
+.search-field input, .select-field select, .filter-trigger { display: block; width: 100%; height: 40px; color: var(--ink); border: 1px solid var(--border); border-radius: 8px; background: #f8fafb; font-size: .875rem; }
 .search-field input { padding: 0 10px 0 35px; }
 .search-field input::placeholder { color: #66788a; }
 .search-icon { position: absolute; top: 12px; left: 13px; width: 12px; height: 12px; border: 1.5px solid #607687; border-radius: 50%; pointer-events: none; }
 .search-icon::after { content: ""; position: absolute; width: 6px; height: 1.5px; background: #607687; right: -5px; bottom: -2px; transform: rotate(48deg); }
 .select-field select { appearance: none; padding: 0 30px 0 11px; text-overflow: ellipsis; }
-.select-field::after { content: ""; position: absolute; width: 6px; height: 6px; border-right: 1.5px solid #607687; border-bottom: 1.5px solid #607687; transform: rotate(45deg); top: calc(50% - 5px); right: 12px; pointer-events: none; }
+.select-field::after, .filter-trigger::after { content: ""; position: absolute; width: 6px; height: 6px; border-right: 1.5px solid #607687; border-bottom: 1.5px solid #607687; transform: rotate(45deg); top: calc(50% - 5px); right: 12px; pointer-events: none; }
+.filter-trigger { position: relative; padding: 0 30px 0 11px; text-align: left; }
+.filter-trigger span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-trigger:hover, .filter-trigger[aria-expanded="true"] { border-color: #88aaa9; }
+.filter-trigger[aria-expanded="true"]::after { transform: rotate(225deg); top: calc(50% - 2px); }
+.filter-trigger.is-filtered { border-color: #a9c9c3; background: #eaf6f3; color: var(--teal-dark); font-weight: 640; }
+.filter-panel { position: absolute; z-index: 5; inset-block-start: calc(100% + 6px); inset-inline-start: 0; min-width: 100%; width: min(255px, calc(100vw - 52px)); border: 1px solid var(--border); border-radius: 9px; background: var(--paper); box-shadow: 0 8px 20px #1b364927; }
+.filter-list { max-height: min(18rem, 42vh); overflow: auto; padding: 5px; }
+.filter-group { min-width: 0; margin: 0; padding: 0; border: 0; }
+.filter-group + .filter-group { margin-top: 6px; padding-top: 2px; }
+.filter-group legend { padding: 7px 8px 3px; color: var(--subtle); font-size: .78rem; font-weight: 650; }
+.filter-option { display: flex; align-items: center; gap: 8px; min-height: 35px; padding: 5px 8px; border-radius: 5px; font-size: .875rem; cursor: pointer; }
+.filter-option:hover, .filter-option:has(input:checked) { background: #eaf6f3; }
+.filter-option input { flex: none; margin: 0; width: 16px; height: 16px; accent-color: var(--teal); }
+.filter-option-label { min-width: 0; overflow-wrap: anywhere; }
+.filter-option-count { margin-left: auto; color: var(--subtle); white-space: nowrap; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.filter-actions { display: flex; justify-content: flex-end; gap: 6px; padding: 7px; border-top: 1px solid var(--border); }
+.filter-actions .button { min-height: 32px; padding-block: 4px; }
 .reset { padding-inline: 10px; color: var(--teal-dark); }
 .reset:hover:not(:disabled) { background: #eaf6f3; }
 .reset:disabled { background: transparent; border-color: transparent; }
@@ -212,6 +229,7 @@ dialog::backdrop { background: #10253e95; }
   .projects-heading { align-items: start; flex-wrap: wrap; padding-inline: 12px; }
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-inline: 12px; gap: 7px; }
   .search-field { grid-column: 1 / -1; }
+  #region-filter .filter-panel { inset-inline: auto 0; }
   .reset { justify-self: start; }
   .table-navigation { padding-inline: 12px; }
   .table-navigation .button { padding-inline: 7px; }
@@ -268,9 +286,9 @@ dialog::backdrop { background: #10253e95; }
       </div>
       <div class="filters" role="group" aria-label="筛选项目">
         <label class="search-field"><span class="search-icon" aria-hidden="true"></span><span class="sr-only">搜索酒店名称、拓建编码、店总或省市</span><input type="search" id="search" placeholder="搜索酒店、编码、店总或省市" autocomplete="off"></label>
-        <label class="select-field"><span class="sr-only">省份</span><select id="province"><option value="">全部省份</option></select></label>
-        <label class="select-field"><span class="sr-only">合区</span><select id="region"><option value="">全部合区</option></select></label>
-        <label class="select-field"><span class="sr-only">品牌</span><select id="brand"><option value="">全部品牌</option></select></label>
+        <div class="multi-filter" id="province-filter"></div>
+        <div class="multi-filter" id="region-filter"></div>
+        <div class="multi-filter" id="brand-filter"></div>
         <button class="button reset" id="reset" type="button" disabled>重置筛选</button>
       </div>
       <div class="table-navigation">
@@ -536,9 +554,11 @@ dialog::backdrop { background: #10253e95; }
   ];
   const searchableColumns = ["A", "D", "L", "S"];
   const search = byId("search");
-  const region = byId("region");
-  const province = byId("province");
-  const brand = byId("brand");
+  const province = createFilter("province", "省份");
+  const region = createFilter("region", "合区");
+  const brand = createFilter("brand", "品牌");
+  const multiFilters = [province, region, brand];
+  let openFilter = null;
   const reset = byId("reset");
   const details = byId("details");
   const csvButton = byId("export-csv");
@@ -570,6 +590,92 @@ dialog::backdrop { background: #10253e95; }
     if (className) node.className = className;
     if (content !== undefined) node.textContent = content;
     return node;
+  }
+
+  function createFilter(id, label) {
+    const root = byId(`${id}-filter`);
+    const trigger = make("button", "filter-trigger");
+    const summary = make("span", null, `全部${label}`);
+    const panel = make("div", "filter-panel");
+    const list = make("div", "filter-list");
+    const actions = make("div", "filter-actions");
+    const clear = make("button", "button button-outline", "清空");
+    const close = make("button", "button button-primary", "完成");
+    trigger.id = id;
+    trigger.type = clear.type = close.type = "button";
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-controls", `${id}-options`);
+    trigger.append(summary);
+    panel.id = `${id}-options`;
+    panel.hidden = true;
+    list.setAttribute("role", "group");
+    list.setAttribute("aria-label", `选择${label}，可多选`);
+    clear.id = `${id}-clear`;
+    clear.setAttribute("aria-label", `清空${label}筛选`);
+    close.id = `${id}-close`;
+    actions.append(clear, close);
+    panel.append(list, actions);
+    root.append(trigger, panel);
+
+    const filter = { label, root, trigger, summary, panel, list, clear, inputs: new Map() };
+    trigger.addEventListener("click", () => setOpenFilter(openFilter === filter ? null : filter));
+    list.addEventListener("change", updateFilters);
+    clear.addEventListener("click", () => {
+      clearFilter(filter);
+      updateFilters();
+      close.focus();
+    });
+    close.addEventListener("click", () => {
+      setOpenFilter(null);
+      trigger.focus();
+    });
+    return filter;
+  }
+
+  function setOpenFilter(filter) {
+    if (openFilter) {
+      openFilter.trigger.setAttribute("aria-expanded", "false");
+      openFilter.panel.hidden = true;
+    }
+    openFilter = filter;
+    if (filter) {
+      filter.trigger.setAttribute("aria-expanded", "true");
+      filter.panel.hidden = false;
+    }
+  }
+
+  function addFilterOption(filter, list, value, label, count) {
+    const option = make("label", "filter-option");
+    const input = make("input");
+    input.type = "checkbox";
+    input.value = value;
+    option.append(input, make("span", "filter-option-label", label));
+    if (count !== undefined) option.append(make("span", "filter-option-count", `${integer.format(count)} 家`));
+    list.append(option);
+    filter.inputs.set(value, input);
+  }
+
+  function readSelection(filter) {
+    const names = [];
+    const selected = new Set();
+    for (const [value, input] of filter.inputs) {
+      if (!input.checked) continue;
+      selected.add(value);
+      names.push(input.nextElementSibling.textContent);
+    }
+    const selectionText = names.join("、");
+    const { label, summary, trigger, clear } = filter;
+    const count = selected.size;
+    summary.textContent = count ? (count === 1 ? names[0] : `${label} · ${count} 项`) : `全部${label}`;
+    trigger.setAttribute("aria-label", count ? `${label}，已选 ${selectionText}` : `全部${label}`);
+    trigger.title = selectionText;
+    trigger.classList.toggle("is-filtered", count > 0);
+    clear.disabled = count === 0;
+    return selected;
+  }
+
+  function clearFilter(filter) {
+    for (const input of filter.inputs.values()) input.checked = false;
   }
 
   function numeric(value) {
@@ -633,8 +739,9 @@ dialog::backdrop { background: #10253e95; }
 
     byId("province-count").textContent = `${provinceCounts.size} 个已填写省份`;
     if (!provinceCounts.size) byId("province-caption").textContent = "暂无省份数据";
-    const ranked = [...provinceCounts].sort((a, b) => b[1] - a[1] || collator.compare(a[0], b[0])).slice(0, 5);
-    for (const [label, count] of ranked) {
+    const ranked = [...provinceCounts].sort((a, b) => b[1] - a[1] || collator.compare(a[0], b[0]));
+    for (const [label, count] of ranked) addFilterOption(province, province.list, label, label, count);
+    for (const [label, count] of ranked.slice(0, 5)) {
       const button = make("button", "province-bar");
       const track = make("span", "bar-track");
       const fill = make("span", "bar-fill");
@@ -647,7 +754,8 @@ dialog::backdrop { background: #10253e95; }
       button.setAttribute("aria-label", `${label}，${count} 个项目`);
       button.append(make("span", null, label), track, make("span", "province-value", integer.format(count)));
       button.addEventListener("click", () => {
-        province.value = province.value === label ? "" : label;
+        const input = province.inputs.get(label);
+        input.checked = !input.checked;
         updateFilters();
         byId("projects").scrollIntoView({ block: "start" });
         byId("projects-title").focus({ preventScroll: true });
@@ -666,32 +774,27 @@ dialog::backdrop { background: #10253e95; }
     const renovationOverview = [...renovationCounts].sort((a, b) => b[1] - a[1] || collator.compare(a[0], b[0]));
     renderCounts(byId("renovation-count-values"), renovationOverview, "合计");
 
-    populateOptions(region, regionCounts.keys());
-    populateOptions(province, provinceCounts.keys());
+    populateOptions(region, region.list, regionCounts.keys());
     populateBrandOptions(brandCounts.keys());
   }
 
-  function populateOptions(select, values) {
+  function populateOptions(filter, list, values) {
     const names = [...values].sort((a, b) => collator.compare(a, b));
     for (const name of names) {
-      const option = make("option", null, name === "-" ? "原表标为 -" : name);
-      option.value = name;
-      select.append(option);
+      addFilterOption(filter, list, name, name === "-" ? "原表标为 -" : name);
     }
   }
 
   function populateBrandOptions(values) {
-    const typeGroup = make("optgroup");
-    typeGroup.label = "品牌类型";
+    const typeGroup = make("fieldset", "filter-group");
+    typeGroup.append(make("legend", null, "品牌类型"));
     for (const { label } of brandTypes) {
-      const option = make("option", null, label);
-      option.value = `type:${label}`;
-      typeGroup.append(option);
+      addFilterOption(brand, typeGroup, `type:${label}`, label);
     }
-    const nameGroup = make("optgroup");
-    nameGroup.label = "品牌名称";
-    populateOptions(nameGroup, values);
-    brand.append(typeGroup, nameGroup);
+    const nameGroup = make("fieldset", "filter-group");
+    nameGroup.append(make("legend", null, "品牌名称"));
+    populateOptions(brand, nameGroup, values);
+    brand.list.append(typeGroup, nameGroup);
   }
 
   function createTableHeader() {
@@ -782,26 +885,27 @@ dialog::backdrop { background: #10253e95; }
 
   function updateFilters() {
     const words = normalized(search.value).trim().split(/\s+/).filter(Boolean);
-    const selectedType = brandTypeFilters.get(brand.value);
-    const brandColumn = selectedType ? "F" : "E";
-    const brandFilter = selectedType ?? brand.value;
+    const selectedRegions = readSelection(region);
+    const selectedProvinces = readSelection(province);
+    const selectedBrands = readSelection(brand);
+    const selectedTypes = new Set([...selectedBrands].map(value => brandTypeFilters.get(value)).filter(Boolean));
     state.results = indexedRows.filter(({ row, text }) => (
-      (!region.value || get(row, "B") === region.value) &&
-      (!province.value || provinceName(get(row, "S")) === province.value) &&
-      (!brandFilter || get(row, brandColumn) === brandFilter) &&
+      (!selectedRegions.size || selectedRegions.has(get(row, "B"))) &&
+      (!selectedProvinces.size || selectedProvinces.has(provinceName(get(row, "S")))) &&
+      (!selectedBrands.size || selectedBrands.has(get(row, "E")) || selectedTypes.has(get(row, "F"))) &&
       words.every(word => text.includes(word))
     )).map(({ row }) => row);
     if (state.sortKey) {
       const column = tableColumns.find(({ key }) => key === state.sortKey);
       state.results.sort((a, b) => compareRows(a, b, column));
     }
-    const filtered = Boolean(words.length || region.value || province.value || brand.value);
+    const filtered = Boolean(words.length || selectedRegions.size || selectedProvinces.size || selectedBrands.size);
     const count = integer.format(state.results.length);
     byId("results").textContent = filtered ? `符合条件 ${count} / ${integer.format(rows.length)} 家门店` : `共 ${count} 家门店 · ${columns.length} 个字段`;
     reset.disabled = !filtered;
     csvButton.disabled = xlsxButton.disabled = !state.results.length;
     for (const bar of byId("province-bars").children) {
-      bar.setAttribute("aria-pressed", String(bar.dataset.province === province.value));
+      bar.setAttribute("aria-pressed", String(selectedProvinces.has(bar.dataset.province)));
     }
     for (const { th, icon, key } of sortHeaders) {
       if (key === state.sortKey) {
@@ -936,11 +1040,20 @@ dialog::backdrop { background: #10253e95; }
   });
 
   search.addEventListener("input", updateFilters);
-  region.addEventListener("change", updateFilters);
-  province.addEventListener("change", updateFilters);
-  brand.addEventListener("change", updateFilters);
+  function closeFilterOutside(event) {
+    if (openFilter && !openFilter.root.contains(event.target)) setOpenFilter(null);
+  }
+  document.addEventListener("click", closeFilterOutside);
+  document.addEventListener("focusin", closeFilterOutside);
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape" || !openFilter) return;
+    const { trigger } = openFilter;
+    setOpenFilter(null);
+    trigger.focus();
+  });
   reset.addEventListener("click", () => {
-    search.value = region.value = province.value = brand.value = "";
+    search.value = "";
+    multiFilters.forEach(clearFilter);
     updateFilters();
     search.focus();
   });
